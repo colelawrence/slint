@@ -21,6 +21,7 @@ members = [
     'examples/printerdemo_mcu',
     'examples/slide_puzzle',
     'examples/todo/rust',
+    'examples/issue_repro',
     'examples/virtual_keyboard/rust',
     'examples/carousel/rust',
     'examples/energy-monitor',
@@ -100,4 +101,3 @@ panic = "abort"
 
 [profile.dev]
 panic = "abort"
-

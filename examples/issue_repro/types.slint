@@ -1,0 +1,10 @@
+export struct A { id: int }
+export struct B { id: int }
+export global Create {
+    function a(id: int) -> A {
+        return { id: id };
+    }
+    function b(id: int) -> B {
+        return { id: id };
+    }
+}

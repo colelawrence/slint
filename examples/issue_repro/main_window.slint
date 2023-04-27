@@ -1,0 +1,15 @@
+import { A, B, Create } from "./types.slint";
+// must be separate file
+
+component ShowB {
+    in property <B> b: Create.b(1099);
+}
+
+component ShowA {
+    property <A> a: Create.a(1001);
+    Text { text: "A \{root.a.id}"; } // required
+}
+
+export component MainWindow inherits Window {
+    ShowA {}
+}
