@@ -497,7 +497,7 @@ impl<Renderer: WinitCompatibleRenderer + 'static> WindowAdapterSealed
                 GraphicsWindowBackendState::Mapped(_) => return Ok(()),
             };
 
-            let mut window_builder = winit::window::WindowBuilder::new();
+            let mut window_builder = winit::window::WindowBuilder::new().with_transparent(true);
 
             let runtime_window = WindowInner::from_pub(&self_.window);
             let component_rc = runtime_window.component();

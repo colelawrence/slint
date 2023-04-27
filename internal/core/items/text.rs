@@ -674,33 +674,55 @@ pub struct TextInputVisualRepresentation {
     pub selection_range: core::ops::Range<usize>,
     /// The position where to draw the cursor, as byte offset within the text.
     pub cursor_position: Option<usize>,
+    text_without_password: Option<String>,
+    password_character: char,
 }
 
 impl TextInputVisualRepresentation {
     /// If the given `TextInput` renders a password, then all characters in this `TextInputVisualRepresentation` are replaced
-    /// with the given password character and the selection/preedit-ranges/cursor position are adjusted.
-    pub fn apply_password_character_substitution(
+    /// with the password character and the selection/preedit-ranges/cursor position are adjusted.
+    /// If `password_character_fn` is Some, it is called lazily to query the password character, otherwise a default is used.
+    fn apply_password_character_substitution(
         &mut self,
         text_input: Pin<&TextInput>,
-        password_character: &str,
+        password_character_fn: Option<fn() -> char>,
     ) {
         if !matches!(text_input.input_type(), InputType::Password) {
             return;
         }
 
+        let password_character = password_character_fn.map_or('●', |f| f());
+
         let text = &mut self.text;
         let fixup_range = |r: &mut core::ops::Range<usize>| {
             if !core::ops::Range::is_empty(&r) {
-                r.start = text[..r.start].chars().count() * password_character.len();
-                r.end = text[..r.end].chars().count() * password_character.len();
+                r.start = text[..r.start].chars().count() * password_character.len_utf8();
+                r.end = text[..r.end].chars().count() * password_character.len_utf8();
             }
         };
         fixup_range(&mut self.preedit_range);
         fixup_range(&mut self.selection_range);
         if let Some(cursor_pos) = self.cursor_position.as_mut() {
-            *cursor_pos = text[..*cursor_pos].chars().count() * password_character.len();
+            *cursor_pos = text[..*cursor_pos].chars().count() * password_character.len_utf8();
         }
-        *text = String::from(password_character.repeat(text.chars().count()));
+        self.text_without_password = Some(core::mem::replace(
+            text,
+            core::iter::repeat(password_character).take(text.chars().count()).collect(),
+        ));
+        self.password_character = password_character;
+    }
+
+    /// Use this function to make a byte offset in the text used for rendering back to a byte offset in the
+    /// TextInput's text. The offsets might differ for example for password text input fields.
+    pub fn map_byte_offset_from_byte_offset_in_visual_text(&self, byte_offset: usize) -> usize {
+        if let Some(text_without_password) = self.text_without_password.as_ref() {
+            text_without_password
+                .char_indices()
+                .nth(byte_offset / self.password_character.len_utf8())
+                .map_or(text_without_password.len(), |(r, _)| r)
+        } else {
+            byte_offset
+        }
     }
 }
 
@@ -1056,7 +1078,13 @@ impl TextInput {
         }
     }
 
-    pub fn visual_representation(self: Pin<&Self>) -> TextInputVisualRepresentation {
+    /// Returns a [`TextInputVisualRepresentation`] struct that contains all the fields necessary for rendering the text input,
+    /// after making adjustments such as applying a substitution of characters for password input fields, or making sure
+    /// that the selection start is always less or equal than the selection end.
+    pub fn visual_representation(
+        self: Pin<&Self>,
+        password_character_fn: Option<fn() -> char>,
+    ) -> TextInputVisualRepresentation {
         let mut text: String = self.text().into();
 
         let preedit_text = self.preedit_text();
@@ -1090,7 +1118,16 @@ impl TextInput {
             (preedit_range, selection_range, cursor_position)
         };
 
-        TextInputVisualRepresentation { text, preedit_range, selection_range, cursor_position }
+        let mut repr = TextInputVisualRepresentation {
+            text,
+            preedit_range,
+            selection_range,
+            cursor_position,
+            text_without_password: None,
+            password_character: Default::default(),
+        };
+        repr.apply_password_character_substitution(self, password_character_fn);
+        repr
     }
 }
 

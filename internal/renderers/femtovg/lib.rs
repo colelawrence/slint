@@ -30,8 +30,6 @@ mod fonts;
 mod images;
 mod itemrenderer;
 
-const PASSWORD_CHARACTER: &str = "●";
-
 /// Use the FemtoVG renderer when implementing a custom Slint platform where you deliver events to
 /// Slint and want the scene to be rendered using OpenGL and the FemtoVG renderer.
 pub struct FemtoVGRenderer {
@@ -250,22 +248,14 @@ impl Renderer for FemtoVGRenderer {
             )
         });
 
-        let is_password =
-            matches!(text_input.input_type(), i_slint_core::items::InputType::Password);
-        let password_string;
-        let actual_text = if is_password {
-            password_string = PASSWORD_CHARACTER.repeat(text.chars().count());
-            password_string.as_str()
-        } else {
-            text.as_str()
-        };
+        let visual_representation = text_input.visual_representation(None);
 
         let paint = font.init_paint(text_input.letter_spacing() * scale_factor, Default::default());
         let text_context =
             crate::fonts::FONT_CACHE.with(|cache| cache.borrow().text_context.clone());
         let font_height = text_context.measure_font(&paint).unwrap().height();
         crate::fonts::layout_text_lines(
-            actual_text,
+            &visual_representation.text,
             &font,
             PhysicalSize::from_lengths(width, height),
             (text_input.horizontal_alignment(), text_input.vertical_alignment()),
@@ -288,13 +278,7 @@ impl Renderer for FemtoVGRenderer {
             },
         );
 
-        if is_password {
-            text.char_indices()
-                .nth(result / PASSWORD_CHARACTER.len())
-                .map_or(text.len(), |(r, _)| r)
-        } else {
-            result
-        }
+        visual_representation.map_byte_offset_from_byte_offset_in_visual_text(result)
     }
 
     fn text_input_cursor_rect_for_byte_offset(
