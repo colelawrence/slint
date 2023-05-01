@@ -27,28 +27,28 @@ mod renderer {
     use std::rc::{Rc, Weak};
 
     use i_slint_core::api::PhysicalSize;
+    use i_slint_core::platform::PlatformError;
     use i_slint_core::window::WindowAdapter;
 
     pub(crate) trait WinitCompatibleRenderer {
         const NAME: &'static str;
 
-        fn new(window_adapter_weak: &Weak<dyn WindowAdapter>) -> Self;
+        fn new(window_adapter_weak: &Weak<dyn WindowAdapter>) -> Result<Self, PlatformError>
+        where
+            Self: Sized;
 
         fn show(
             &self,
             window_builder: winit::window::WindowBuilder,
             #[cfg(target_arch = "wasm32")] canvas_id: &str,
-        ) -> Result<Rc<winit::window::Window>, i_slint_core::platform::PlatformError>;
-        fn hide(&self) -> Result<(), i_slint_core::platform::PlatformError>;
+        ) -> Result<Rc<winit::window::Window>, PlatformError>;
+        fn hide(&self) -> Result<(), PlatformError>;
 
-        fn render(&self, size: PhysicalSize) -> Result<(), i_slint_core::platform::PlatformError>;
+        fn render(&self, size: PhysicalSize) -> Result<(), PlatformError>;
 
         fn as_core_renderer(&self) -> &dyn i_slint_core::renderer::Renderer;
 
-        fn resize_event(
-            &self,
-            size: PhysicalSize,
-        ) -> Result<(), i_slint_core::platform::PlatformError>;
+        fn resize_event(&self, size: PhysicalSize) -> Result<(), PlatformError>;
 
         #[cfg(target_arch = "wasm32")]
         fn html_canvas_element(&self) -> web_sys::HtmlCanvasElement;
@@ -67,11 +67,14 @@ mod renderer {
 pub(crate) mod wasm_input_helper;
 
 #[cfg(target_arch = "wasm32")]
-pub fn create_gl_window_with_canvas_id(canvas_id: String) -> Rc<dyn WindowAdapter> {
+pub fn create_gl_window_with_canvas_id(
+    canvas_id: String,
+) -> Result<Rc<dyn WindowAdapter>, PlatformError> {
     WinitWindowAdapter::<crate::renderer::femtovg::GlutinFemtoVGRenderer>::new(canvas_id)
 }
 
-fn window_factory_fn<R: WinitCompatibleRenderer + 'static>() -> Rc<dyn WindowAdapter> {
+fn window_factory_fn<R: WinitCompatibleRenderer + 'static>(
+) -> Result<Rc<dyn WindowAdapter>, PlatformError> {
     WinitWindowAdapter::<R>::new(
         #[cfg(target_arch = "wasm32")]
         "canvas".into(),
@@ -112,7 +115,7 @@ pub mod native_widgets {}
 /// slint::platform::set_platform(Box::new(Backend::new()));
 /// ```
 pub struct Backend {
-    window_factory_fn: fn() -> Rc<dyn WindowAdapter>,
+    window_factory_fn: fn() -> Result<Rc<dyn WindowAdapter>, PlatformError>,
 }
 
 impl Backend {
@@ -153,7 +156,7 @@ impl Backend {
 
 impl i_slint_core::platform::Platform for Backend {
     fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, PlatformError> {
-        Ok((self.window_factory_fn)())
+        (self.window_factory_fn)()
     }
 
     #[doc(hidden)]

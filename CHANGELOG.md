@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 ### General
 
 - Added `Window` `position-x` and `position-y` TODO-feature/2023-04-window-position-property
+- Fixed missing items compilation error in the generated code related to public functions (#2655).
 
 ### Rust
 
