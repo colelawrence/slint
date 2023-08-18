@@ -411,8 +411,9 @@ impl<Renderer: WinitCompatibleRenderer + 'static> WindowAdapterSealed
             self.window().set_size(i_slint_core::api::LogicalSize::new(width, height));
         }
 
-        if let Ok(existing_position) =
-            winit_window.outer_position().map(|pp| pp.to_logical::<f32>(winit_window.scale_factor() as f64))
+        if let Ok(existing_position) = winit_window
+            .outer_position()
+            .map(|pp| pp.to_logical::<f32>(winit_window.scale_factor() as f64))
         {
             // TODO-feature/2023-04-window-position-property
             // // I think the window can be at negative positions
@@ -435,7 +436,9 @@ impl<Renderer: WinitCompatibleRenderer + 'static> WindowAdapterSealed
                 // If we're in fullscreen state, don't try to move the window but maintain the surface
                 // size we've been assigned to from the windowing system.
                 if winit_window.fullscreen().is_none() {
-                    winit_window.set_outer_position(winit::dpi::LogicalPosition::new(position_x, position_y));
+                    winit_window.set_outer_position(winit::dpi::LogicalPosition::new(
+                        position_x, position_y,
+                    ));
                 }
             }
         }

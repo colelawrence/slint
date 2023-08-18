@@ -18,7 +18,9 @@ use crate::input::{
 };
 use crate::item_tree::ItemRc;
 use crate::items::{ItemRef, MouseCursor};
-use crate::lengths::{LogicalLength, LogicalPoint, LogicalRect, LogicalSize, SizeLengths, PointLengths};
+use crate::lengths::{
+    LogicalLength, LogicalPoint, LogicalRect, LogicalSize, PointLengths, SizeLengths,
+};
 use crate::properties::{Property, PropertyTracker};
 use crate::renderer::Renderer;
 use crate::{Callback, Coord};
